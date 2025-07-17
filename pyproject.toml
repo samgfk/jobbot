@@ -4,9 +4,8 @@ version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 packages = []
+package-mode = false
 
-[tool.poetry.package-mode]
-enabled = false
 
 [tool.poetry.dependencies]
 python = ">=3.11.0,<3.12"
