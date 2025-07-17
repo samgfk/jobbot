@@ -57,23 +57,17 @@ def apply():
         with open("config.json", "w") as f:
             json.dump(config_data, f, indent=4)
 
-        scraped_jobs = []
+            scraped_jobs = []
 
-        for title in job_title_list:
-            jobs = scrape_jobs(title)
-            print(f"Scraped jobs for '{title}': {jobs}")
-            scraped_jobs.extend(jobs)
+            for title in job_title_list:
+             jobs = scrape_jobs(title)
+             print(f"Scraped jobs for '{title}': {jobs}")
 
-            
+             if jobs:
+                 scraped_jobs.extend(jobs)
 
+            print("Final scraped jobs list:", scraped_jobs)
 
-
-
-
-
-
-
-        print("Scraped jobs:", scraped_jobs)
 
     
 
