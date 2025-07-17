@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 def scrape_jobs(job_title):
-    url = "https://www.pyrem.dev/jobs"
+    url = "https://pyrem.dev/jobs"
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
     }
