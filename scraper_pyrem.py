@@ -2,21 +2,19 @@ import requests
 from bs4 import BeautifulSoup
 
 def scrape_jobs(job_title):
-    query = job_title.replace(" ", "-").lower()
-    url = f"https://jobicy.com/search?q={query}"
-
+    url = "https://www.pyrem.dev/jobs"
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
     }
 
     res = requests.get(url, headers=headers)
     soup = BeautifulSoup(res.text, "html.parser")
-    job_cards = soup.select("div.job-list-item")
+    job_cards = soup.select("div.job-post")
 
     jobs = []
     for job in job_cards:
-        title_tag = job.select_one("h2.title")
-        company_tag = job.select_one("span.company")
+        title_tag = job.select_one("h2")
+        company_tag = job.select_one("p.company")
         link_tag = job.select_one("a")
 
         if title_tag and company_tag and link_tag:
@@ -25,7 +23,9 @@ def scrape_jobs(job_title):
                 "company": company_tag.text.strip(),
                 "link": link_tag["href"]
             }
+            print(f"[DEBUG] Title: {job_data['title']} | Company: {job_data['company']}")
             jobs.append(job_data)
 
-    print(f"[DEBUG] Found {len(jobs)} Jobicy jobs")
+    print(f"[DEBUG] Found {len(jobs)} jobs from pyrem.dev")
     return jobs
+
