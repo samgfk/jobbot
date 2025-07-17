@@ -56,11 +56,14 @@ def apply():
 
         for title in job_title_list:
             jobs = scrape_jobs(title)
-            print(f"Scraped jobs for '{title}': {jobs}")
-            if jobs:
-                scraped_jobs.extend(jobs)
+            print(f"[DEBUG] Scraped {len(jobs)} jobs for title: {title}")
+            for job in jobs:
+                print(f"[DEBUG] Job Found → Title: {job.get('title')} | Company: {job.get('company')} | Link: {job.get('link')}")
+            scraped_jobs.extend(jobs)
 
-        print("Final scraped jobs list:", scraped_jobs)
+        print(f"[DEBUG] Total jobs to write: {len(scraped_jobs)}")
+
+
 
         # Write results to CSV
         with open('applied_jobs.csv', mode='w', newline='', encoding='utf-8') as file:
