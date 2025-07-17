@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: jobbot-pro
+    env: python
+    buildCommand: poetry install
+    startCommand: poetry run python main.py
+    pythonVersion: 3.11.8
