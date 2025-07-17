@@ -1,30 +1,25 @@
 import requests
-from bs4 import BeautifulSoup
 
-def scrape_jobs(job_title):
-    url = f"https://remoteok.com/remote-{job_title.replace(' ', '-')}-jobs"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-    }
-
+def scrape_jobs(keyword):
+    url = "https://remoteok.com/api"
+    headers = {"User-Agent": "Mozilla/5.0"}
     res = requests.get(url, headers=headers)
-    soup = BeautifulSoup(res.text, "html.parser")
-    job_rows = soup.select("tr.job")
 
+    if res.status_code != 200:
+        print("[ERROR] RemoteOK API failed")
+        return []
+
+    data = res.json()
     jobs = []
-    for job in job_rows:
-        title_tag = job.select_one("h2")
-        company_tag = job.select_one(".companyLink span")
-        link_tag = job.select_one("a.preventLink")
 
-        if title_tag and company_tag and link_tag:
+    for job in data[1:]:  # first item is metadata
+        if keyword.lower() in job.get("position", "").lower():
             jobs.append({
-                "title": title_tag.text.strip(),
-                "company": company_tag.text.strip(),
-                "link": f"https://remoteok.com{link_tag['href']}"
+                "title": job.get("position", "N/A"),
+                "company": job.get("company", "N/A"),
+                "link": job.get("url", "#")
             })
 
-    print(f"[DEBUG] Found {len(jobs)} RemoteOK jobs.")
+    print(f"[DEBUG] Found {len(jobs)} RemoteOK API jobs.")
     return jobs
-
 
