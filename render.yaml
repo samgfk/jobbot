@@ -4,4 +4,6 @@ services:
     env: python
     buildCommand: poetry install
     startCommand: poetry run python main.py
-    pythonVersion: 3.11.8
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
