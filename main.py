@@ -3,7 +3,7 @@ import json
 import os
 import uuid
 from flask import Flask, render_template, request
-from scraper_jobicy import scrape_jobs
+from scraper_pyrem import scrape_jobs
 from flask import send_file
 
 app = Flask(__name__)
