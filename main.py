@@ -57,6 +57,7 @@ def apply():
         for title in job_title_list:
             jobs = scrape_jobs(title)
             print(f"[DEBUG] Scraped {len(jobs)} jobs for title: {title}")
+            print(f"[DEBUG] Raw scrape_jobs() result for '{title}': {jobs}")
             for job in jobs:
                 print(f"[DEBUG] Job Found → Title: {job.get('title')} | Company: {job.get('company')} | Link: {job.get('link')}")
             scraped_jobs.extend(jobs)
@@ -113,9 +114,11 @@ def view_log():
 @app.route("/download")
 def download_log():
     try:
-        return send_file("applied_jobs.csv", as_attachment=True)
+        file_path = os.path.join(os.getcwd(), "applied_jobs.csv")
+        return send_file(file_path, as_attachment=True)
     except Exception as e:
         return f"Error downloading log: {str(e)}"
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
