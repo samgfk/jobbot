@@ -1,8 +1,10 @@
 [tool.poetry]
-name = "python-template"
+name = "jobbot-pro"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
+packages = []
+
 
 [tool.poetry.dependencies]
 python = ">=3.11.0,<3.12"
