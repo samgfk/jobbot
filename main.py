@@ -64,7 +64,7 @@ def apply():
             print(f"Scraped jobs for '{title}': {jobs}")
             scraped_jobs.extend(jobs)
 
-            scraped_jobs.extend(scrape_jobs(title))
+            
 
 
 
