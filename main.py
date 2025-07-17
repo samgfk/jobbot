@@ -64,7 +64,7 @@ def apply():
 
         # Write results to CSV
         with open('applied_jobs.csv', mode='w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=["title", "link"])
+            writer = csv.DictWriter(file, fieldnames=["title", "company", "link"])
             writer.writeheader()
             for job in scraped_jobs:
                 writer.writerow(job)
