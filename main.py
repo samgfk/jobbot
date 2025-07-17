@@ -76,7 +76,8 @@ def apply():
 
 @app.route('/dashboard')
 def dashboard():
-    return "<h1>Dashboard coming soon!</h1>"
+    return view_log()
+
 
 @app.errorhandler(404)
 def not_found(error):
