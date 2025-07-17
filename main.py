@@ -3,7 +3,8 @@ import json
 import os
 import uuid
 from flask import Flask, render_template, request
-from scraper_startupjobs import scrape_startup_jobs as 
+from scraper_startupjobs import scrape_startup_jobs as scrape_jobs
+ 
 from flask import send_file
 
 
