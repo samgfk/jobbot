@@ -4,22 +4,16 @@ import os
 import uuid
 from flask import Flask, render_template, request
 from scraper_startupjobs import scrape_startup_jobs as scrape_jobs
- 
 from flask import send_file
-
-
-
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'resumes'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-
 @app.route('/')
 def form():
     return render_template('form.html')
-
 
 @app.route('/apply', methods=['POST'])
 def apply():
@@ -57,20 +51,16 @@ def apply():
         with open("config.json", "w") as f:
             json.dump(config_data, f, indent=4)
 
-            scraped_jobs = []
+        # Now scrape jobs and write to CSV
+        scraped_jobs = []
 
-            for title in job_title_list:
-             jobs = scrape_jobs(title)
-             print(f"Scraped jobs for '{title}': {jobs}")
+        for title in job_title_list:
+            jobs = scrape_jobs(title)
+            print(f"Scraped jobs for '{title}': {jobs}")
+            if jobs:
+                scraped_jobs.extend(jobs)
 
-             if jobs:
-                 scraped_jobs.extend(jobs)
-
-            print("Final scraped jobs list:", scraped_jobs)
-
-
-    
-
+        print("Final scraped jobs list:", scraped_jobs)
 
         # Write results to CSV
         with open('applied_jobs.csv', mode='w', newline='', encoding='utf-8') as file:
@@ -84,16 +74,13 @@ def apply():
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
 
-
 @app.route('/dashboard')
 def dashboard():
     return "<h1>Dashboard coming soon!</h1>"
 
-
 @app.errorhandler(404)
 def not_found(error):
     return "Page not found", 404
-
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -126,8 +113,7 @@ def download_log():
     except Exception as e:
         return f"Error downloading log: {str(e)}"
 
-
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=True)
+
