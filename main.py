@@ -48,10 +48,7 @@ def apply():
             json.dump(config_data, f, indent=4)
 
         # 🔥 SCRAPE JOBS
-        scraped_jobs = [
-            {"title": "Backend Developer", "company": "FakeTech", "url": "https://example.com"},
-            {"title": "AI Engineer", "company": "OpenAI", "url": "https://example.com"},
-        ]
+        scraped_jobs = get_jobs()
 
         print(f"[DEBUG] Scraped jobs: {len(scraped_jobs)} found")
 
