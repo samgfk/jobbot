@@ -3,7 +3,6 @@ import json
 import os
 import uuid
 from flask import Flask, render_template, request
-import asyncio
 from scraper import get_jobs
 from flask import send_file
 
@@ -21,10 +20,10 @@ def apply():
     try:
         name = request.form.get('name')
         email = request.form.get('email')
-        job_titles = request.form.get('job_titles')
+        job_titles_raw = request.form.get('job_titles', '')
         resume = request.files.get('resume')
 
-        if not name or not email or not job_titles:
+        if not name or not email or not job_titles_raw:
             return "Missing required fields. Please fill out all fields.", 400
         if not resume or not resume.filename.lower().endswith('.pdf'):
             return "Please upload a PDF file only.", 400
@@ -34,23 +33,25 @@ def apply():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         resume.save(filepath)
 
-        job_title_list = [j.strip() for j in job_titles.split(',') if j.strip()]
+        # Parse job titles input
+        job_title_list = [j.strip() for j in job_titles_raw.split(',') if j.strip()]
+
+        # Save config
         config_data = {
             "name": name,
             "email": email,
             "keywords": job_title_list,
             "resume_path": filepath,
-            "location_filter": "Los Angeles",  # adjust later if needed
+            "location_filter": "Los Angeles",  # Can be made dynamic later
             "max_results": 50
         }
 
         with open("config.json", "w") as f:
             json.dump(config_data, f, indent=4)
 
-        # 🔥 SCRAPE JOBS
+        # Scrape jobs
         scraped_jobs = get_jobs()
         print("[DEBUG] Scraped jobs:", scraped_jobs)
-
 
         with open('applied_jobs.csv', 'w', newline='', encoding='utf-8') as file:
             writer = csv.DictWriter(file, fieldnames=["title", "company", "url"])
@@ -81,7 +82,6 @@ def view_log():
         with open('applied_jobs.csv', 'r') as f:
             reader = csv.DictReader(f)
             jobs = list(reader)
-
         return render_template("log.html", jobs=jobs)
     except Exception as e:
         return f"Error reading log: {str(e)}"
