@@ -49,8 +49,8 @@ def apply():
 
         # 🔥 SCRAPE JOBS
         scraped_jobs = get_jobs()
+        print("[DEBUG] Scraped jobs:", scraped_jobs)
 
-        print(f"[DEBUG] Scraped jobs: {len(scraped_jobs)} found")
 
         with open('applied_jobs.csv', 'w', newline='', encoding='utf-8') as file:
             writer = csv.DictWriter(file, fieldnames=["title", "company", "url"])
