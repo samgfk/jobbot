@@ -1,37 +1,30 @@
 import requests
 from bs4 import BeautifulSoup
 
-MAX_RESULTS = 20
-
-def location_allowed(text):
-    return "remote" in text.lower()
-
-def scrape_remoteok(keyword):
-    print(f"[SCRAPE] RemoteOK for: {keyword}...", flush=True)
-    url = f"https://remoteok.io/remote-{keyword.lower().replace(' ', '-')}-jobs"
+def scrape_jobicy(keyword):
+    print(f"[SCRAPE] Jobicy for: {keyword}...", flush=True)
+    url = f"https://jobicy.com/jobs/?q={keyword.lower().replace(' ', '+')}"
     jobs = []
     try:
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
         soup = BeautifulSoup(r.text, "html.parser")
-        for row in soup.select("div.job")[:MAX_RESULTS]:
-            link_elem = row.select_one("a.preventLink")
-            title_elem = row.select_one("h2")
-            company_elem = row.select_one("h3")
-            if not link_elem or not title_elem:
+        listings = soup.select("article.job-list-item")
+        for job in listings[:20]:
+            title_elem = job.select_one("h2")
+            company_elem = job.select_one("div.company")
+            link_elem = job.select_one("a")
+
+            if not title_elem or not link_elem:
                 continue
 
-            full_url = "https://remoteok.io" + link_elem["href"]
-            title = title_elem.text.strip()
-            company = company_elem.text.strip() if company_elem else "Unknown"
-            text = f"{title} {company}".lower()
+            jobs.append({
+                "title": title_elem.text.strip(),
+                "company": company_elem.text.strip() if company_elem else "Unknown",
+                "link": link_elem["href"]
+            })
 
-            if location_allowed(text):
-                jobs.append({
-                    "title": title,
-                    "company": company,
-                    "link": full_url
-                })
     except Exception as e:
-        print(f"[ERROR] RemoteOK: {e}", flush=True)
+        print(f"[ERROR] Jobicy: {e}", flush=True)
+
     return jobs
 
