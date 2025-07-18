@@ -48,7 +48,10 @@ def apply():
             json.dump(config_data, f, indent=4)
 
         # 🔥 SCRAPE JOBS
-        scraped_jobs = get_jobs()
+        scraped_jobs = []
+        for title in job_title_list:
+            scraped_jobs += get_jobs(title)
+
 
         # Save to CSV
         with open('applied_jobs.csv', 'w', newline='', encoding='utf-8') as file:
