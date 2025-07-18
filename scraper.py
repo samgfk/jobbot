@@ -143,17 +143,19 @@ def get_jobs():
             print("[DEBUG] Page Source Length:", len(driver.page_source))
             print(driver.page_source[:500])
 
-            tiles = driver.find_elements(By.CSS_SELECTOR, "div.job-tile")
-            for tile in tiles:
+            job_cards = driver.find_elements(By.CSS_SELECTOR, "a[data-job-id]")
+
+            for card in job_cards:
                 try:
-                    title = tile.find_element(By.CLASS_NAME, "job-tile-title").text
-                    company = tile.find_element(By.CLASS_NAME, "job-tile-company").text
-                    href = tile.find_element(By.TAG_NAME, "a").get_attribute("href")
+                    title = card.find_element(By.CSS_SELECTOR, "div.job-tile-title").text
+                    company = card.find_element(By.CSS_SELECTOR, "div.job-tile-company").text
+                    href = card.get_attribute("href")
                     text = f"{title} {company} {href}".lower()
                     if any(kw in text for kw in KEYWORDS) and location_allowed(text):
                         jobs.append({"url": href, "title": title, "company": company})
                 except:
                     continue
+
         except Exception as e:
             print(f"[ERROR] Remotive: {e}", flush=True)
         driver.quit()
