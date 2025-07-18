@@ -28,7 +28,13 @@ def get_jobs():
         options.add_argument("--disable-dev-shm-usage")
 
         driver_path = os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
-        return uc.Chrome(options=options, driver_executable_path=driver_path)  # ✅ Fix: specify driver path
+        return uc.Chrome(
+            options=options,
+            driver_executable_path=driver_path,
+            browser_executable_path="/usr/bin/chromium"
+        )
+
+        
 
 
     all_jobs = []
