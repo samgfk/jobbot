@@ -2,9 +2,9 @@ import os
 import json
 import time
 import csv
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 import undetected_chromedriver as uc
+from selenium.webdriver.chrome.service import Service
 
 def get_jobs():
     with open("config.json") as f:
@@ -20,13 +20,13 @@ def get_jobs():
         return any(loc.strip() in text.lower() for loc in location_filter.split(","))
 
     options = uc.ChromeOptions()
-    options.binary_location = os.environ.get("GOOGLE_CHROME_BIN", "/usr/bin/google-chrome")
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
+    # ✅ FIXED: Use uc.install() to get a working binary path on Railway
+    driver = uc.Chrome(service=Service(uc.install()), options=options)
 
-    driver = uc.Chrome(options=options)
     all_jobs = []
 
     def scrape_remoteok():
@@ -124,7 +124,6 @@ def get_jobs():
 
     driver.quit()
 
-    # Deduplicate and trim
     seen, unique = set(), []
     for j in all_jobs:
         if j["url"] not in seen:
