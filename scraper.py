@@ -2,9 +2,8 @@ import os
 import json
 import time
 import csv
-from selenium.webdriver.common.by import By
 import undetected_chromedriver as uc
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 
 def get_jobs():
     with open("config.json") as f:
@@ -20,12 +19,12 @@ def get_jobs():
         return any(loc.strip() in text.lower() for loc in location_filter.split(","))
 
     options = uc.ChromeOptions()
+    options.binary_location = os.environ.get("GOOGLE_CHROME_BIN", "/usr/bin/google-chrome")
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    # ✅ FIXED: Use uc.install() to get a working binary path on Railway
-    driver = uc.Chrome(service=Service(uc.install()), options=options)
+    driver = uc.Chrome(options=options)
 
     all_jobs = []
 
@@ -44,31 +43,10 @@ def get_jobs():
                     text = f"{title} {company} {href}".lower()
                     if any(kw in text for kw in KEYWORDS) and location_allowed(text):
                         jobs.append({"url": href, "title": title, "company": company})
-                except Exception:
+                except:
                     continue
         except Exception as e:
             print(f"[ERROR] RemoteOK: {e}")
-        return jobs
-
-    def scrape_simplyhired():
-        print("[SCRAPE] SimplyHired (Local)...")
-        jobs = []
-        try:
-            driver.get("https://www.simplyhired.com/search?q=developer&l=" + location_filter)
-            time.sleep(3)
-            cards = driver.find_elements(By.CSS_SELECTOR, "div.SerpJob-jobCard")
-            for card in cards[:MAX_RESULTS]:
-                try:
-                    title = card.find_element(By.CSS_SELECTOR, "a").text
-                    href = card.find_element(By.CSS_SELECTOR, "a").get_attribute("href")
-                    company = card.find_element(By.CSS_SELECTOR, "span.JobPosting-labelWithIcon").text
-                    text = f"{title} {company} {href}".lower()
-                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
-                        jobs.append({"url": href, "title": title, "company": company})
-                except Exception:
-                    continue
-        except Exception as e:
-            print(f"[ERROR] SimplyHired: {e}")
         return jobs
 
     def scrape_remoteco():
@@ -87,10 +65,31 @@ def get_jobs():
                     text = f"{title} {company} {href}".lower()
                     if any(kw in title.lower() for kw in KEYWORDS) and location_allowed(text):
                         jobs.append({"url": href, "title": title, "company": company})
-                except Exception:
+                except:
                     continue
         except Exception as e:
             print(f"[ERROR] Remote.co: {e}")
+        return jobs
+
+    def scrape_simplyhired():
+        print("[SCRAPE] SimplyHired (Local)...")
+        jobs = []
+        try:
+            driver.get("https://www.simplyhired.com/search?q=developer&l=" + location_filter)
+            time.sleep(3)
+            cards = driver.find_elements(By.CSS_SELECTOR, "div.SerpJob-jobCard")
+            for card in cards[:MAX_RESULTS]:
+                try:
+                    title = card.find_element(By.CSS_SELECTOR, "a").text
+                    href = card.find_element(By.CSS_SELECTOR, "a").get_attribute("href")
+                    company = card.find_element(By.CSS_SELECTOR, "span.JobPosting-labelWithIcon").text
+                    text = f"{title} {company} {href}".lower()
+                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
+                        jobs.append({"url": href, "title": title, "company": company})
+                except:
+                    continue
+        except Exception as e:
+            print(f"[ERROR] SimplyHired: {e}")
         return jobs
 
     def scrape_local_usajobs():
@@ -108,7 +107,7 @@ def get_jobs():
                     text = f"{title} {agency} {href}".lower()
                     if any(kw in text for kw in KEYWORDS) and location_allowed(text):
                         jobs.append({"url": href, "title": title, "company": agency})
-                except Exception:
+                except:
                     continue
         except Exception as e:
             print(f"[ERROR] USAJobs: {e}")
@@ -124,6 +123,7 @@ def get_jobs():
 
     driver.quit()
 
+    # Deduplicate and trim
     seen, unique = set(), []
     for j in all_jobs:
         if j["url"] not in seen:
