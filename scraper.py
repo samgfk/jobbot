@@ -8,6 +8,8 @@ from selenium.webdriver.common.by import By
 def get_jobs():
     with open("config.json") as f:
         config = json.load(f)
+        print("[DEBUG] config =", config, flush=True)
+
 
     KEYWORDS = [kw.lower() for kw in config.get("keywords", [])]
     MAX_RESULTS = config.get("max_results", 50)
