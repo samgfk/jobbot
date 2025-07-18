@@ -31,7 +31,7 @@ def scrape_remoteok():
             jobs.append({
                 "title": title,
                 "company": company,
-                "link": link
+                "url": link
             })
         except Exception as e:
             print(f"[ERROR] Skipping job row: {e}", flush=True)
