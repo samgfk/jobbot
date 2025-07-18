@@ -48,17 +48,15 @@ def apply():
             json.dump(config_data, f, indent=4)
 
         # 🔥 SCRAPE JOBS
-        scraped_jobs = []
-        for title in job_title_list:
-            scraped_jobs += get_jobs(title)
+        scraped_jobs = get_jobs()
+        print(f"[DEBUG] Scraped jobs: {len(scraped_jobs)} found")
 
-
-        # Save to CSV
         with open('applied_jobs.csv', 'w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=["title", "company", "url"])
-            writer.writeheader()
-            for job in scraped_jobs:
-                writer.writerow(job)
+             writer = csv.DictWriter(file, fieldnames=["title", "company", "url"])
+             writer.writeheader()
+             for job in scraped_jobs:
+                 writer.writerow(job)
+
 
         return render_template('success.html', name=name)
 
