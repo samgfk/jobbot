@@ -1,3 +1,4 @@
+# scraper.py (Updated with Jobicy + Himalayas)
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -28,13 +29,49 @@ def scrape_remoteok():
             title = row.select_one("h2").text.strip()
             company = row.select_one(".companyLink").text.strip()
             link = "https://remoteok.com" + row.select_one("a")["href"]
-            jobs.append({
-                "title": title,
-                "company": company,
-                "url": link
-            })
+            jobs.append({"title": title, "company": company, "url": link})
         except Exception as e:
-            print(f"[ERROR] Skipping job row: {e}", flush=True)
+            print(f"[ERROR] Skipping RemoteOK row: {e}", flush=True)
+
+    return jobs
+
+def scrape_jobicy():
+    print("[SCRAPE] Jobicy...", flush=True)
+    html = fetch_html("https://jobicy.com/remote-jobs")
+    soup = BeautifulSoup(html, "html.parser")
+    job_cards = soup.select("article.job-list li")
+
+    print(f"[DEBUG] Found {len(job_cards)} jobs on Jobicy", flush=True)
+
+    jobs = []
+    for card in job_cards:
+        try:
+            title = card.select_one(".job-title a").text.strip()
+            company = card.select_one(".job-company").text.strip()
+            link = card.select_one(".job-title a")["href"]
+            jobs.append({"title": title, "company": company, "url": link})
+        except Exception as e:
+            print(f"[ERROR] Skipping Jobicy card: {e}", flush=True)
+
+    return jobs
+
+def scrape_himalayas():
+    print("[SCRAPE] Himalayas...", flush=True)
+    html = fetch_html("https://himalayas.app/jobs")
+    soup = BeautifulSoup(html, "html.parser")
+    job_cards = soup.select("a[class*='JobPreview']")
+
+    print(f"[DEBUG] Found {len(job_cards)} jobs on Himalayas", flush=True)
+
+    jobs = []
+    for card in job_cards:
+        try:
+            title = card.select_one("h3").text.strip()
+            company = card.select_one(".styles_company__Q0w6Y").text.strip()
+            link = "https://himalayas.app" + card["href"]
+            jobs.append({"title": title, "company": company, "url": link})
+        except Exception as e:
+            print(f"[ERROR] Skipping Himalayas card: {e}", flush=True)
 
     return jobs
 
@@ -52,16 +89,17 @@ def get_jobs():
         return any(loc.strip() in text.lower() for loc in location_filter.split(","))
 
     all_jobs = []
-
     try:
-        scraped_jobs = scrape_remoteok()
-
-        for job in scraped_jobs:
-            combined_text = f"{job['title']} {job['company']} {job['url']}".lower()
-            if any(kw in combined_text for kw in KEYWORDS) and location_allowed(combined_text):
-                all_jobs.append(job)
-                if len(all_jobs) >= MAX_RESULTS:
-                    break
+        sources = [scrape_remoteok, scrape_jobicy, scrape_himalayas]
+        for scrape_fn in sources:
+            scraped_jobs = scrape_fn()
+            for job in scraped_jobs:
+                combined_text = f"{job['title']} {job['company']} {job['url']}".lower()
+                if any(kw in combined_text for kw in KEYWORDS) and location_allowed(combined_text):
+                    all_jobs.append(job)
+                    if len(all_jobs) >= MAX_RESULTS:
+                        print("[LIMIT] Reached max results")
+                        return all_jobs
 
         print(f"[SCRAPE] {len(all_jobs)} unique jobs found", flush=True)
         return all_jobs
