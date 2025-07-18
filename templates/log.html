@@ -82,6 +82,7 @@
             <thead>
                 <tr>
                     <th>Job Title</th>
+                    <th>Company</th>
                     <th>Link</th>
                 </tr>
             </thead>
@@ -89,6 +90,7 @@
                 {% for job in jobs %}
                 <tr>
                     <td>{{ job.title }}</td>
+                    <td>{{ job.company }}</td>
                     <td><a href="{{ job.link }}" target="_blank">View</a></td>
                 </tr>
                 {% endfor %}
