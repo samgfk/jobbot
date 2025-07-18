@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y wget gnupg unzip curl && \
 # Install Playwright and Chromium
 RUN pip install --upgrade pip
 COPY requirements.txt .
-RUN pip install -r requirements.txt && playwright install chromium
+RUN pip install -r requirements.txt
+
 
 # Copy everything else
 COPY . .
