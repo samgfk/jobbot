@@ -4,7 +4,7 @@ import os
 import uuid
 from flask import Flask, render_template, request
 import asyncio
-from scraper import scrape_remoteok as scrape_jobs
+from scraper import scrape_jobicy as scrape_jobs
 from flask import send_file
 
 app = Flask(__name__)
