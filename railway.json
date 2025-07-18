@@ -1,0 +1,23 @@
+{
+  "build": {
+    "builder": "nixpacks",
+    "nixpacksPlan": {
+      "phases": {
+        "setup": {
+          "commands": [
+            "echo 'Using Dockerfile'"
+          ]
+        },
+        "install": {
+          "commands": []
+        },
+        "build": {
+          "commands": []
+        },
+        "start": {
+          "cmd": "docker build -t jobbot . && docker run jobbot"
+        }
+      }
+    }
+  }
+}
