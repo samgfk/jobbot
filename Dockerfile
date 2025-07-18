@@ -1,14 +1,19 @@
 FROM python:3.11-slim
 
+# Set working directory
 WORKDIR /app
 
-COPY . /app
+# Install system dependencies
+RUN apt-get update && apt-get install -y wget gnupg unzip curl && \
+    apt-get install -y libnss3 libatk-bridge2.0-0 libxss1 libasound2 libgbm-dev libgtk-3-0
 
-RUN apt-get update && apt-get install -y wget gnupg curl unzip xvfb libnss3 libxss1 libasound2 libatk1.0-0 libgtk-3-0 libgbm1
-
+# Install Playwright and Chromium
 RUN pip install --upgrade pip
-
-# Install Playwright and deps
+COPY requirements.txt .
 RUN pip install -r requirements.txt && playwright install chromium
 
+# Copy everything else
+COPY . .
+
+# Default command
 CMD ["python", "main.py"]
