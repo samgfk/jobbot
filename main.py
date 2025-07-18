@@ -3,7 +3,8 @@ import json
 import os
 import uuid
 from flask import Flask, render_template, request
-from scraper_remoteok import scrape_jobs
+import asyncio
+from scraper_playwright import scrape_jobs
 from flask import send_file
 
 app = Flask(__name__)
@@ -55,12 +56,13 @@ def apply():
         scraped_jobs = []
 
         for title in job_title_list:
-            jobs = scrape_jobs(title)
+            jobs = asyncio.run(scrape_jobs(title))
             print(f"[DEBUG] Scraped {len(jobs)} jobs for title: {title}")
             print(f"[DEBUG] Raw scrape_jobs() result for '{title}': {jobs}")
             for job in jobs:
                 print(f"[DEBUG] Job Found → Title: {job.get('title')} | Company: {job.get('company')} | Link: {job.get('link')}")
             scraped_jobs.extend(jobs)
+
 
         print(f"[DEBUG] Total jobs to write: {len(scraped_jobs)}")
 
