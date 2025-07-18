@@ -57,7 +57,7 @@ def get_jobs():
         scraped_jobs = scrape_remoteok()
 
         for job in scraped_jobs:
-            combined_text = f"{job['title']} {job['company']} {job['link']}".lower()
+            combined_text = f"{job['title']} {job['company']} {job['url']}".lower()
             if any(kw in combined_text for kw in KEYWORDS) and location_allowed(combined_text):
                 all_jobs.append(job)
                 if len(all_jobs) >= MAX_RESULTS:
