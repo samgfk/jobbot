@@ -25,51 +25,34 @@ def apply():
         job_titles = request.form.get('job_titles')
         resume = request.files.get('resume')
 
-        # Validate required fields
         if not name or not email or not job_titles:
             return "Missing required fields. Please fill out all fields.", 400
-
-        if not resume or not resume.filename:
-            return "Resume upload failed. Please select a PDF file.", 400
-
-        if not resume.filename.lower().endswith('.pdf'):
+        if not resume or not resume.filename.lower().endswith('.pdf'):
             return "Please upload a PDF file only.", 400
 
-        # Save uploaded resume
+        # Save resume
         filename = f"{uuid.uuid4().hex}_{resume.filename}"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         resume.save(filepath)
 
-        # Save config JSON
         job_title_list = [j.strip() for j in job_titles.split(',') if j.strip()]
         config_data = {
             "name": name,
             "email": email,
-            "job_titles": job_title_list,
+            "keywords": job_title_list,
             "resume_path": filepath,
-            "location": "Los Angeles"  # Can change to user input later
+            "location_filter": "Los Angeles"  # adjust later if needed
         }
 
         with open("config.json", "w") as f:
             json.dump(config_data, f, indent=4)
 
-        # Now scrape jobs and write to CSV
-        scraped_jobs = []
+        # 🔥 SCRAPE JOBS
+        scraped_jobs = get_jobs()
 
-        for title in job_title_list:
-            jobs = scrape_jobs(title)
-
-            print(f"[DEBUG] Scraped {len(jobs)} jobs for title: {title}")
-            for job in jobs:
-                print(f"[DEBUG] → {job}")
-            scraped_jobs.extend(jobs)
-
-
-
-
-        # Write results to CSV
-        with open('applied_jobs.csv', mode='w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=["title", "company", "link"])
+        # Save to CSV
+        with open('applied_jobs.csv', 'w', newline='', encoding='utf-8') as file:
+            writer = csv.DictWriter(file, fieldnames=["title", "company", "url"])
             writer.writeheader()
             for job in scraped_jobs:
                 writer.writerow(job)
@@ -78,6 +61,9 @@ def apply():
 
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
+
+
+        
 
 @app.route('/dashboard')
 def dashboard():
