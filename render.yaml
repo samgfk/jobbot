@@ -1,9 +1,4 @@
 services:
   - type: web
     name: jobbot-pro
-    env: python
-    buildCommand: pip install -r requirements.txt && playwright install chromium
-    startCommand: python main.py
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.8
+    env: docker
