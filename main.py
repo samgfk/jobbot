@@ -5,7 +5,6 @@ import uuid
 from flask import Flask, render_template, request
 import asyncio
 from scraper import get_jobs
-
 from flask import send_file
 
 app = Flask(__name__)
@@ -41,7 +40,8 @@ def apply():
             "email": email,
             "keywords": job_title_list,
             "resume_path": filepath,
-            "location_filter": "Los Angeles"  # adjust later if needed
+            "location_filter": "Los Angeles",  # adjust later if needed
+            "max_results": 50
         }
 
         with open("config.json", "w") as f:
@@ -53,24 +53,19 @@ def apply():
         print(f"[DEBUG] Scraped jobs: {len(scraped_jobs)} found")
 
         with open('applied_jobs.csv', 'w', newline='', encoding='utf-8') as file:
-             writer = csv.DictWriter(file, fieldnames=["title", "company", "url"])
-             writer.writeheader()
-             for job in scraped_jobs:
-                 writer.writerow(job)
-
+            writer = csv.DictWriter(file, fieldnames=["title", "company", "url"])
+            writer.writeheader()
+            for job in scraped_jobs:
+                writer.writerow(job)
 
         return render_template('success.html', name=name)
 
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
 
-
-        
-
 @app.route('/dashboard')
 def dashboard():
     return view_log()
-
 
 @app.errorhandler(404)
 def not_found(error):
@@ -91,7 +86,6 @@ def view_log():
     except Exception as e:
         return f"Error reading log: {str(e)}"
 
-
 @app.route("/download")
 def download_log():
     try:
@@ -100,8 +94,6 @@ def download_log():
     except Exception as e:
         return f"Error downloading log: {str(e)}"
 
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=True)
-
