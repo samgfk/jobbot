@@ -29,7 +29,7 @@ def get_jobs():
     all_jobs = []
 
     def scrape_remoteok():
-        print("[SCRAPE] RemoteOK...")
+        print("[SCRAPE] RemoteOK...", flush=True)
         jobs = []
         try:
             driver.get("https://remoteok.com/remote-dev-jobs")
@@ -46,11 +46,11 @@ def get_jobs():
                 except:
                     continue
         except Exception as e:
-            print(f"[ERROR] RemoteOK: {e}")
+            print(f"[ERROR] RemoteOK: {e}", flush=True)
         return jobs
 
     def scrape_remoteco():
-        print("[SCRAPE] Remote.co...")
+        print("[SCRAPE] Remote.co...", flush=True)
         jobs = []
         try:
             driver.get("https://remote.co/remote-jobs/developer/")
@@ -68,11 +68,11 @@ def get_jobs():
                 except:
                     continue
         except Exception as e:
-            print(f"[ERROR] Remote.co: {e}")
+            print(f"[ERROR] Remote.co: {e}", flush=True)
         return jobs
 
     def scrape_simplyhired():
-        print("[SCRAPE] SimplyHired (Local)...")
+        print("[SCRAPE] SimplyHired...", flush=True)
         jobs = []
         try:
             driver.get("https://www.simplyhired.com/search?q=developer&l=" + location_filter)
@@ -89,11 +89,11 @@ def get_jobs():
                 except:
                     continue
         except Exception as e:
-            print(f"[ERROR] SimplyHired: {e}")
+            print(f"[ERROR] SimplyHired: {e}", flush=True)
         return jobs
 
-    def scrape_local_usajobs():
-        print("[SCRAPE] USAJobs (Local)...")
+    def scrape_usajobs():
+        print("[SCRAPE] USAJobs...", flush=True)
         jobs = []
         try:
             driver.get("https://www.usajobs.gov/Search/Results?k=developer&l=" + location_filter)
@@ -110,20 +110,41 @@ def get_jobs():
                 except:
                     continue
         except Exception as e:
-            print(f"[ERROR] USAJobs: {e}")
+            print(f"[ERROR] USAJobs: {e}", flush=True)
         return jobs
 
-    for fn in [scrape_remoteok, scrape_remoteco, scrape_simplyhired, scrape_local_usajobs]:
+    def scrape_remotive():
+        print("[SCRAPE] Remotive...", flush=True)
+        jobs = []
+        try:
+            driver.get("https://remotive.io/remote-jobs/software-dev")
+            time.sleep(3)
+            tiles = driver.find_elements(By.CSS_SELECTOR, "div.job-tile")
+            for tile in tiles[:MAX_RESULTS]:
+                try:
+                    title = tile.find_element(By.CLASS_NAME, "job-tile-title").text
+                    company = tile.find_element(By.CLASS_NAME, "job-tile-company").text
+                    href = tile.find_element(By.TAG_NAME, "a").get_attribute("href")
+                    text = f"{title} {company} {href}".lower()
+                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
+                        jobs.append({"url": href, "title": title, "company": company})
+                except:
+                    continue
+        except Exception as e:
+            print(f"[ERROR] Remotive: {e}", flush=True)
+        return jobs
+
+    for fn in [scrape_remoteok, scrape_remoteco, scrape_remotive, scrape_simplyhired, scrape_usajobs]:
         try:
             jobs = fn()
+            print(f"[DEBUG] {fn.__name__}() → {len(jobs)} jobs", flush=True)
             all_jobs.extend(jobs)
         except Exception as e:
-            print(f"[SCRAPE ERROR] {fn.__name__}: {e}")
+            print(f"[SCRAPE ERROR] {fn.__name__}: {e}", flush=True)
         time.sleep(2)
 
     driver.quit()
 
-    # Deduplicate and trim
     seen, unique = set(), []
     for j in all_jobs:
         if j["url"] not in seen:
@@ -132,5 +153,5 @@ def get_jobs():
         if len(unique) >= MAX_RESULTS:
             break
 
-    print(f"[SCRAPE] {len(unique)} unique jobs found")
+    print(f"[SCRAPE] {len(unique)} unique jobs found", flush=True)
     return unique
