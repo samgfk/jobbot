@@ -26,7 +26,10 @@ def get_jobs():
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        return uc.Chrome(options=options)
+
+        driver_path = os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
+        return uc.Chrome(options=options, driver_executable_path=driver_path)  # ✅ Fix: specify driver path
+
 
     all_jobs = []
 
