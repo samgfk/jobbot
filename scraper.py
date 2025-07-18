@@ -4,12 +4,81 @@ import time
 import csv
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
+# You might need to import requests if you use it in scrape_simplyhired
+# import requests 
 
+def init_driver():
+    """
+    Initializes and returns an undetected_chromedriver instance
+    with necessary options for headless execution in a Docker/Railway environment.
+    Explicitly points to pre-installed Chromium and Chromedriver executables.
+    """
+    options = uc.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--start-maximized")
+
+    # Explicitly define paths based on your Dockerfile installation
+    # This is CRITICAL for undetected_chromedriver to find them in the container
+    driver_path = os.environ.get('CHROMEDRIVER_PATH', '/usr/bin/chromedriver')
+    browser_path = '/usr/bin/chromium'
+
+    print(f"[DEBUG] Initializing uc.Chrome with browser_executable_path: {browser_path}", flush=True)
+    print(f"[DEBUG] Initializing uc.Chrome with driver_executable_path: {driver_path}", flush=True)
+
+    return uc.Chrome(
+        options=options,
+        driver_executable_path=driver_path,
+        browser_executable_path=browser_path
+    )
+
+def scrape_remoteok(driver):
+    """
+    Scrapes job listings from RemoteOK.com using the provided driver.
+    Note: Selectors might need manual verification against the live site.
+    """
+    print("[SCRAPE] RemoteOK...", flush=True)
+
+    driver.get("https://remoteok.com/")
+    time.sleep(3) # Consider increasing this or using WebDriverWait if content loads slowly
+
+    job_rows = driver.find_elements(By.XPATH, '//tr[@class="job"]')
+    print(f"[DEBUG] Found {len(job_rows)} job rows on RemoteOK.com", flush=True)
+
+    jobs = []
+
+    for row in job_rows:
+        try:
+            # Example of how to potentially filter sponsored jobs if they have a distinct class or attribute
+            # This is a common pattern, but you need to verify it on the live site.
+            if "featured" in row.get_attribute("class") or row.get_attribute("data-promoted") == "true":
+                continue # Skip featured/promoted jobs
+
+            title = row.find_element(By.TAG_NAME, "h2").text.strip()
+            company = row.find_element(By.CLASS_NAME, "companyLink").text.strip()
+            link = row.find_element(By.TAG_NAME, "a").get_attribute("href")
+
+            jobs.append({
+                "title": title,
+                "company": company,
+                "link": link
+            })
+
+        except Exception as e:
+            # Log the specific error for debugging individual rows
+            print(f"[ERROR] RemoteOK: Skipping row due to error: {e}", flush=True)
+            continue # Continue to the next row even if one fails
+
+    return jobs
+
+# --- Original get_jobs function (modified to integrate the new scrape_xxx structure) ---
 def get_jobs():
     with open("config.json") as f:
         config = json.load(f)
         print("[DEBUG] config =", config, flush=True)
-
 
     KEYWORDS = [kw.lower() for kw in config.get("keywords", [])]
     MAX_RESULTS = config.get("max_results", 50)
@@ -20,178 +89,88 @@ def get_jobs():
             return True
         return any(loc.strip() in text.lower() for loc in location_filter.split(","))
 
-    def init_driver():
-        options = uc.ChromeOptions()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("--start-maximized")
-
-        driver_path = os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
-
-        return uc.Chrome(
-            options=options,
-            driver_executable_path=driver_path,                     # ✅ Required in containers
-            browser_executable_path="/usr/bin/chromium"            # ✅ Chromium path from apt-get
-        )
-
-
-        
-
-
     all_jobs = []
 
-    def scrape_remoteok():
-        print("[SCRAPE] RemoteOK...", flush=True)
-        jobs = []
+    # Initialize the driver once and pass it to functions
+    driver = None
+    try:
         driver = init_driver()
-        try:
-            driver.get("https://remoteok.com/remote-dev-jobs")
-            time.sleep(3)
-            print("[DEBUG] Page Source Length:", len(driver.page_source))
-            print(driver.page_source[:500])
 
-            rows = driver.find_elements(By.CSS_SELECTOR, "tr.job")
-            for row in rows:
-                try:
-                    title = row.get_attribute("data-position") or "Remote Job"
-                    company = row.get_attribute("data-company") or "Unknown"
-                    href = row.find_element(By.CSS_SELECTOR, "a.preventLink").get_attribute("href")
-                    text = f"{title} {company} {href}".lower()
-                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
-                        jobs.append({"url": href, "title": title, "company": company})
-                except:
-                    continue
-        except Exception as e:
-            print(f"[ERROR] RemoteOK: {e}", flush=True)
-        driver.quit()
-        return jobs
+        # List of scraper functions to run
+        # Note: You need to implement/re-add scrape_remoteco, scrape_remotive, etc.,
+        # similar to scrape_remoteok if they are still part of your overall plan.
+        # For this example, we'll just run scrape_remoteok.
+        scraper_functions = [
+            # Each function should accept 'driver' as an argument
+            lambda d: scrape_remoteok(d),
+            # Add other scraper functions here once they are updated and verified
+            # lambda d: scrape_remoteco(d),
+            # lambda d: scrape_remotive(d),
+            # lambda d: scrape_simplyhired(d), # Likely still blocked by Cloudflare
+            # lambda d: scrape_usajobs(d),
+        ]
 
-    def scrape_remoteco():
-        print("[SCRAPE] Remote.co...", flush=True)
-        jobs = []
-        driver = init_driver()
-        try:
-            driver.get("https://remote.co/remote-jobs/developer/")
-            time.sleep(3)
-            print("[DEBUG] Page Source Length:", len(driver.page_source))
-            print(driver.page_source[:500])
+        for fn_wrapper in scraper_functions:
+            try:
+                jobs = fn_wrapper(driver) # Pass the shared driver instance
+                # Apply your filtering logic here after scraping
+                filtered_jobs = []
+                for job in jobs:
+                    combined_text = f"{job.get('title', '')} {job.get('company', '')} {job.get('link', '')}".lower()
+                    if any(kw in combined_text for kw in KEYWORDS) and location_allowed(combined_text):
+                        filtered_jobs.append(job)
+                
+                print(f"[DEBUG] {fn_wrapper.__name__}() -> {len(filtered_jobs)} filtered jobs", flush=True)
+                all_jobs.extend(filtered_jobs)
+            except Exception as e:
+                # Catch specific errors from within the scrape_xxx functions
+                print(f"[SCRAPE ERROR] {fn_wrapper.__name__}: {e}", flush=True)
+            time.sleep(2) # Short delay between scraping different sites
 
-            listings = driver.find_elements(By.CSS_SELECTOR, "li.job_listing")
-            for row in listings:
-                try:
-                    a_tag = row.find_element(By.CSS_SELECTOR, "a")
-                    href = a_tag.get_attribute("href")
-                    title = a_tag.get_attribute("title")
-                    company = row.find_element(By.CLASS_NAME, "company").text
-                    text = f"{title} {company} {href}".lower()
-                    if any(kw in title.lower() for kw in KEYWORDS) and location_allowed(text):
-                        jobs.append({"url": href, "title": title, "company": company})
-                except:
-                    continue
-        except Exception as e:
-            print(f"[ERROR] Remote.co: {e}", flush=True)
-        driver.quit()
-        return jobs
-
-    def scrape_simplyhired():
-        print("[SCRAPE] SimplyHired...", flush=True)
-        jobs = []
-        driver = init_driver()
-        try:
-            driver.get(f"https://www.simplyhired.com/search?q=developer&l={location_filter}")
-            time.sleep(3)
-            print("[DEBUG] Page Source Length:", len(driver.page_source))
-            print(driver.page_source[:500])
-
-            cards = driver.find_elements(By.CSS_SELECTOR, "div.SerpJob-jobCard")
-            for card in cards:
-                try:
-                    title = card.find_element(By.CSS_SELECTOR, "a").text
-                    href = card.find_element(By.CSS_SELECTOR, "a").get_attribute("href")
-                    company = card.find_element(By.CSS_SELECTOR, "span.JobPosting-labelWithIcon").text
-                    text = f"{title} {company} {href}".lower()
-                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
-                        jobs.append({"url": href, "title": title, "company": company})
-                except:
-                    continue
-        except Exception as e:
-            print(f"[ERROR] SimplyHired: {e}", flush=True)
-        driver.quit()
-        return jobs
-
-    def scrape_usajobs():
-        print("[SCRAPE] USAJobs...", flush=True)
-        jobs = []
-        driver = init_driver()
-        try:
-            driver.get(f"https://www.usajobs.gov/Search/Results?k=developer&l={location_filter}")
-            time.sleep(3)
-            print("[DEBUG] Page Source Length:", len(driver.page_source))
-            print(driver.page_source[:500])
-
-            cards = driver.find_elements(By.CSS_SELECTOR, "usajobs-search-result-item")
-            for card in cards:
-                try:
-                    href = card.find_element(By.CSS_SELECTOR, "a").get_attribute("href")
-                    title = card.find_element(By.CSS_SELECTOR, "a").text
-                    agency = card.find_element(By.CSS_SELECTOR, ".usajobs-search-result--agency-name").text
-                    text = f"{title} {agency} {href}".lower()
-                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
-                        jobs.append({"url": href, "title": title, "company": agency})
-                except:
-                    continue
-        except Exception as e:
-            print(f"[ERROR] USAJobs: {e}", flush=True)
-        driver.quit()
-        return jobs
-
-    def scrape_remotive():
-        print("[SCRAPE] Remotive...", flush=True)
-        jobs = []
-        driver = init_driver()
-        try:
-            driver.get("https://remotive.io/remote-jobs/software-dev")
-            time.sleep(3)
-            print("[DEBUG] Page Source Length:", len(driver.page_source))
-            print(driver.page_source[:500])
-
-            job_cards = driver.find_elements(By.CSS_SELECTOR, "a[data-job-id]")
-
-            for card in job_cards:
-                try:
-                    title = card.find_element(By.CSS_SELECTOR, "div.job-tile-title").text
-                    company = card.find_element(By.CSS_SELECTOR, "div.job-tile-company").text
-                    href = card.get_attribute("href")
-                    text = f"{title} {company} {href}".lower()
-                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
-                        jobs.append({"url": href, "title": title, "company": company})
-                except:
-                    continue
-
-        except Exception as e:
-            print(f"[ERROR] Remotive: {e}", flush=True)
-        driver.quit()
-        return jobs
-
-    for fn in [scrape_remoteok, scrape_remoteco, scrape_remotive, scrape_simplyhired, scrape_usajobs]:
-        try:
-            jobs = fn()
-            print(f"[DEBUG] {fn.__name__}() → {len(jobs)} jobs", flush=True)
-            all_jobs.extend(jobs)
-        except Exception as e:
-            print(f"[SCRAPE ERROR] {fn.__name__}: {e}", flush=True)
-        time.sleep(2)
+    except Exception as e:
+        print(f"[CRITICAL ERROR] Failed to initialize driver or run scrapers: {e}", flush=True)
+    finally:
+        if driver:
+            driver.quit() # Ensure the browser is closed even if errors occur
 
     seen, unique = set(), []
     for j in all_jobs:
-        if j["url"] not in seen:
-            seen.add(j["url"])
+        if j["link"] not in seen: # Use 'link' for uniqueness, not 'url' as per your scrape_remoteok output
+            seen.add(j["link"])
             unique.append(j)
         if len(unique) >= MAX_RESULTS:
             break
 
-    print(f"[SCRAPE] {len(unique)} unique jobs found", flush=True)
+    print(f"[SCRAPE] {len(unique)} unique jobs found total", flush=True)
     return unique
+
+# Example usage if you want to test this file directly
+if __name__ == "__main__":
+    # Create a dummy config.json for testing if it doesn't exist
+    if not os.path.exists("config.json"):
+        dummy_config = {
+            "keywords": ["engineer", "developer"],
+            "location_filter": "",
+            "max_results": 5
+        }
+        with open("config.json", "w") as f:
+            json.dump(dummy_config, f, indent=4)
+        print("Created a dummy config.json for testing.", flush=True)
+
+    scraped_data = get_jobs()
+    print("\n--- Final Scraped Jobs ---", flush=True)
+    for job in scraped_data:
+        print(job, flush=True)
+
+    # Example of writing to CSV (your original code might already do this in main.py)
+    # csv_file = "applied_jobs.csv"
+    # fieldnames = ["title", "company", "link"] # Adjust based on your actual data keys
+    #
+    # try:
+    #     with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+    #         writer = csv.DictWriter(f, fieldnames=fieldnames)
+    #         writer.writeheader()
+    #         writer.writerows(scraped_data)
+    #     print(f"\nScraped data saved to {csv_file}", flush=True)
+    # except Exception as e:
+    #     print(f"Error writing to CSV: {e}", flush=True)
