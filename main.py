@@ -48,7 +48,11 @@ def apply():
             json.dump(config_data, f, indent=4)
 
         # 🔥 SCRAPE JOBS
-        scraped_jobs = get_jobs()
+        scraped_jobs = [
+            {"title": "Backend Developer", "company": "FakeTech", "url": "https://example.com"},
+            {"title": "AI Engineer", "company": "OpenAI", "url": "https://example.com"},
+        ]
+
         print(f"[DEBUG] Scraped jobs: {len(scraped_jobs)} found")
 
         with open('applied_jobs.csv', 'w', newline='', encoding='utf-8') as file:
