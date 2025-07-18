@@ -22,17 +22,21 @@ def get_jobs():
 
     def init_driver():
         options = uc.ChromeOptions()
-        options.binary_location = os.environ.get("GOOGLE_CHROME_BIN", "/usr/bin/google-chrome")
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--start-maximized")
 
         driver_path = os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
+
         return uc.Chrome(
             options=options,
-            driver_executable_path=driver_path,
-            browser_executable_path="/usr/bin/chromium"
+            driver_executable_path=driver_path,                     # ✅ Required in containers
+            browser_executable_path="/usr/bin/chromium"            # ✅ Chromium path from apt-get
         )
+
 
         
 
