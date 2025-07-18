@@ -56,7 +56,8 @@ def apply():
         scraped_jobs = []
 
         for title in job_title_list:
-            jobs = scrape_remoteok(title)
+            jobs = scrape_jobs(title)
+
             print(f"[DEBUG] Scraped {len(jobs)} jobs for title: {title}")
             for job in jobs:
                 print(f"[DEBUG] → {job}")
