@@ -2,9 +2,8 @@ import csv
 import json
 import os
 import uuid
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file
 from scraper import get_jobs
-from flask import send_file
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'resumes'
@@ -34,7 +33,7 @@ def apply():
         resume.save(filepath)
 
         # Parse job titles input
-        job_title_list = [j.strip() for j in job_titles_raw.split(',') if j.strip()]
+        job_title_list = [j.strip().lower() for j in job_titles_raw.split(',') if j.strip()]
 
         # Save config
         config_data = {
@@ -42,7 +41,7 @@ def apply():
             "email": email,
             "keywords": job_title_list,
             "resume_path": filepath,
-            "location_filter": "Los Angeles",  # Can be made dynamic later
+            "location_filter": "",  # Set to blank for now
             "max_results": 50
         }
 
@@ -51,7 +50,12 @@ def apply():
 
         # Scrape jobs
         scraped_jobs = get_jobs()
-        print("[DEBUG] Scraped jobs:", scraped_jobs)
+        print("[DEBUG] Scraped jobs count:", len(scraped_jobs))
+        for job in scraped_jobs:
+            print("[DEBUG] Job:", job)
+
+        if not scraped_jobs:
+            print("[WARNING] No jobs found. Check keyword match or site blocks.")
 
         with open('applied_jobs.csv', 'w', newline='', encoding='utf-8') as file:
             writer = csv.DictWriter(file, fieldnames=["title", "company", "url"])
@@ -62,6 +66,7 @@ def apply():
         return render_template('success.html', name=name)
 
     except Exception as e:
+        print("[ERROR] Exception occurred:", str(e))
         return f"An error occurred: {str(e)}", 500
 
 @app.route('/dashboard')
