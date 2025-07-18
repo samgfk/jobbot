@@ -1,9 +1,9 @@
-import os
-import csv
-import time
 import json
-import requests
-from bs4 import BeautifulSoup
+import time
+import csv
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import undetected_chromedriver as uc
 
 def get_jobs():
     with open("config.json") as f:
@@ -18,113 +18,100 @@ def get_jobs():
             return True
         return any(loc.strip() in text.lower() for loc in location_filter.split(","))
 
-    def scrape_remotive():
-        print("[SCRAPE] Remotive...")
-        url = "https://remotive.io/remote-jobs/software-dev"
-        jobs = []
-        try:
-            r = requests.get(url, timeout=20)
-            soup = BeautifulSoup(r.text, "html.parser")
-            for tile in soup.select("div.job-tile")[:MAX_RESULTS]:
-                t = tile.select_one(".job-tile-title")
-                l = tile.select_one("a")
-                c = tile.select_one(".job-tile-company")
-                if not (t and l): continue
-                title = t.get_text(strip=True)
-                company = c.get_text(strip=True) if c else "Unknown"
-                href = l["href"]
-                full = href if href.startswith("http") else f"https://remotive.io{href}"
-                text = (title + " " + company + " " + full).lower()
-                if any(kw in text for kw in KEYWORDS) and location_allowed(text):
-                    jobs.append({"url": full, "title": title, "company": company})
-        except Exception as e:
-            print(f"[ERROR] Remotive: {e}")
-        return jobs
+    options = uc.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+
+    driver = uc.Chrome(options=options)
+    all_jobs = []
 
     def scrape_remoteok():
         print("[SCRAPE] RemoteOK...")
-        url = "https://remoteok.io/remote-dev-jobs"
         jobs = []
         try:
-            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
-            soup = BeautifulSoup(r.text, "html.parser")
-            for row in soup.select("tr.job")[:MAX_RESULTS]:
-                l = row.select_one("a.preventLink")
-                if not l: continue
-                full_url = "https://remoteok.io" + l["href"]
-                title = row.get("data-position", "Remote Job")
-                company = row.get("data-company", "Unknown")
-                text = (title + " " + company + " " + full_url).lower()
-                if any(kw in text for kw in KEYWORDS) and location_allowed(text):
-                    jobs.append({"url": full_url, "title": title, "company": company})
+            driver.get("https://remoteok.com/remote-dev-jobs")
+            time.sleep(3)
+            rows = driver.find_elements(By.CSS_SELECTOR, "tr.job")
+            for row in rows[:MAX_RESULTS]:
+                try:
+                    title = row.get_attribute("data-position") or "Remote Job"
+                    company = row.get_attribute("data-company") or "Unknown"
+                    href = row.find_element(By.CSS_SELECTOR, "a.preventLink").get_attribute("href")
+                    text = f"{title} {company} {href}".lower()
+                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
+                        jobs.append({"url": href, "title": title, "company": company})
+                except Exception:
+                    continue
         except Exception as e:
             print(f"[ERROR] RemoteOK: {e}")
         return jobs
 
-    def scrape_weworkremotely():
-        print("[SCRAPE] WeWorkRemotely...")
-        url = "https://weworkremotely.com/categories/remote-programming-jobs"
+    def scrape_simplyhired():
+        print("[SCRAPE] SimplyHired (Local)...")
         jobs = []
         try:
-            r = requests.get(url, timeout=20)
-            soup = BeautifulSoup(r.text, "html.parser")
-            for sec in soup.select("section.jobs li.feature")[:MAX_RESULTS]:
-                l = sec.select_one("a")
-                if not l: continue
-                href = l["href"]
-                full_url = "https://weworkremotely.com" + href
-                title = sec.get_text(strip=True)
-                text = (title + " " + full_url).lower()
-                if any(kw in title.lower() for kw in KEYWORDS) and location_allowed(text):
-                    jobs.append({"url": full_url, "title": title, "company": "Unknown"})
+            driver.get("https://www.simplyhired.com/search?q=developer&l=" + location_filter)
+            time.sleep(3)
+            cards = driver.find_elements(By.CSS_SELECTOR, "div.SerpJob-jobCard")
+            for card in cards[:MAX_RESULTS]:
+                try:
+                    title = card.find_element(By.CSS_SELECTOR, "a").text
+                    href = card.find_element(By.CSS_SELECTOR, "a").get_attribute("href")
+                    company = card.find_element(By.CSS_SELECTOR, "span.JobPosting-labelWithIcon").text
+                    text = f"{title} {company} {href}".lower()
+                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
+                        jobs.append({"url": href, "title": title, "company": company})
+                except Exception:
+                    continue
         except Exception as e:
-            print(f"[ERROR] WWR: {e}")
-        return jobs
-
-    def scrape_jobspresso():
-        print("[SCRAPE] Jobspresso...")
-        url = "https://jobspresso.co/remote-developer-jobs/"
-        jobs = []
-        try:
-            r = requests.get(url, timeout=20)
-            soup = BeautifulSoup(r.text, "html.parser")
-            for li in soup.select("ul.jobs li.job_listing")[:MAX_RESULTS]:
-                a = li.select_one("a")
-                if not a: continue
-                href = a["href"]
-                title = a.get("title", "Remote Job")
-                company = li.select_one(".company")
-                company_name = company.get_text(strip=True) if company else "Unknown"
-                text = (title + " " + company_name + " " + href).lower()
-                if any(kw in title.lower() for kw in KEYWORDS) and location_allowed(text):
-                    jobs.append({"url": href, "title": title, "company": company_name})
-        except Exception as e:
-            print(f"[ERROR] Jobspresso: {e}")
+            print(f"[ERROR] SimplyHired: {e}")
         return jobs
 
     def scrape_remoteco():
         print("[SCRAPE] Remote.co...")
-        url = "https://remote.co/remote-jobs/developer/"
         jobs = []
         try:
-            r = requests.get(url, timeout=20)
-            soup = BeautifulSoup(r.text, "html.parser")
-            for row in soup.select("li.job_listing")[:MAX_RESULTS]:
-                a = row.select_one("a")
-                if not a: continue
-                href = a["href"]
-                title = a.get("title", "Remote Job")
-                company = row.select_one(".company")
-                company_name = company.get_text(strip=True) if company else "Unknown"
-                text = (title + " " + company_name + " " + href).lower()
-                if any(kw in title.lower() for kw in KEYWORDS) and location_allowed(text):
-                    jobs.append({"url": href, "title": title, "company": company_name})
+            driver.get("https://remote.co/remote-jobs/developer/")
+            time.sleep(3)
+            listings = driver.find_elements(By.CSS_SELECTOR, "li.job_listing")
+            for row in listings[:MAX_RESULTS]:
+                try:
+                    a_tag = row.find_element(By.CSS_SELECTOR, "a")
+                    href = a_tag.get_attribute("href")
+                    title = a_tag.get_attribute("title")
+                    company = row.find_element(By.CLASS_NAME, "company").text
+                    text = f"{title} {company} {href}".lower()
+                    if any(kw in title.lower() for kw in KEYWORDS) and location_allowed(text):
+                        jobs.append({"url": href, "title": title, "company": company})
+                except Exception:
+                    continue
         except Exception as e:
             print(f"[ERROR] Remote.co: {e}")
         return jobs
 
-    all_jobs = []
-    for fn in (scrape_remotive, scrape_remoteok, scrape_weworkremotely, scrape_jobspresso, scrape_remoteco):
+    def scrape_local_usajobs():
+        print("[SCRAPE] USAJobs (Local)...")
+        jobs = []
+        try:
+            driver.get("https://www.usajobs.gov/Search/Results?k=developer&l=" + location_filter)
+            time.sleep(3)
+            cards = driver.find_elements(By.CSS_SELECTOR, "usajobs-search-result-item")
+            for card in cards[:MAX_RESULTS]:
+                try:
+                    href = card.find_element(By.CSS_SELECTOR, "a").get_attribute("href")
+                    title = card.find_element(By.CSS_SELECTOR, "a").text
+                    agency = card.find_element(By.CSS_SELECTOR, ".usajobs-search-result--agency-name").text
+                    text = f"{title} {agency} {href}".lower()
+                    if any(kw in text for kw in KEYWORDS) and location_allowed(text):
+                        jobs.append({"url": href, "title": title, "company": agency})
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[ERROR] USAJobs: {e}")
+        return jobs
+
+    for fn in [scrape_remoteok, scrape_remoteco, scrape_simplyhired, scrape_local_usajobs]:
         try:
             jobs = fn()
             all_jobs.extend(jobs)
@@ -132,6 +119,9 @@ def get_jobs():
             print(f"[SCRAPE ERROR] {fn.__name__}: {e}")
         time.sleep(2)
 
+    driver.quit()
+
+    # Deduplicate and trim
     seen, unique = set(), []
     for j in all_jobs:
         if j["url"] not in seen:
