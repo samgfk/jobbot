@@ -1,9 +1,7 @@
 {
-    "name": "james t",
-    "email": "jtxcode@yahoo.com",
-    "job_titles": [
-        "marketing"
-    ],
-    "resume_path": "resumes/e74be75f24da432eac9d773c3c2e579b_resume.pdf",
-    "location": "Los Angeles"
+  "name": "james t",
+  "email": "jtxcode@yahoo.com",
+  "job_titles": ["marketing", "ads", "growth", "seo", "digital", "media"],
+  "resume_path": "resumes/e74be75f2f4da432eac9d773c3c2e579b_resume.pdf",
+  "location": ""
 }
