@@ -13,15 +13,25 @@ def scrape_remoteok(keyword):
     try:
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
         soup = BeautifulSoup(r.text, "html.parser")
-        for row in soup.select("tr.job")[:MAX_RESULTS]:
-            l = row.select_one("a.preventLink")
-            if not l: continue
-            full_url = "https://remoteok.io" + l["href"]
-            title = row.get("data-position", "Remote Job")
-            company = row.get("data-company", "Unknown")
-            text = (title + " " + company + " " + full_url).lower()
+        for row in soup.select("div.job")[:MAX_RESULTS]:
+            link_elem = row.select_one("a.preventLink")
+            title_elem = row.select_one("h2")
+            company_elem = row.select_one("h3")
+            if not link_elem or not title_elem:
+                continue
+
+            full_url = "https://remoteok.io" + link_elem["href"]
+            title = title_elem.text.strip()
+            company = company_elem.text.strip() if company_elem else "Unknown"
+            text = f"{title} {company}".lower()
+
             if location_allowed(text):
-                jobs.append({"title": title, "company": company, "link": full_url})
+                jobs.append({
+                    "title": title,
+                    "company": company,
+                    "link": full_url
+                })
     except Exception as e:
         print(f"[ERROR] RemoteOK: {e}", flush=True)
     return jobs
+
