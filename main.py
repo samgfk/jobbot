@@ -95,21 +95,13 @@ def internal_error(error):
 def view_log():
     try:
         with open('applied_jobs.csv', 'r') as f:
-            reader = csv.reader(f)
-            headers = next(reader)
-            rows = list(reader)
+            reader = csv.DictReader(f)
+            jobs = list(reader)
 
-        table_html = "<table class='table table-striped table-bordered'>"
-        table_html += "<thead><tr>" + "".join([f"<th>{header}</th>" for header in headers]) + "</tr></thead><tbody>"
-
-        for row in rows:
-            table_html += "<tr>" + "".join([f"<td>{cell}</td>" for cell in row]) + "</tr>"
-
-        table_html += "</tbody></table>"
-
-        return render_template("log.html", table=table_html)
+        return render_template("log.html", jobs=jobs)
     except Exception as e:
         return f"Error reading log: {str(e)}"
+
 
 @app.route("/download")
 def download_log():
