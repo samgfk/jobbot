@@ -41,15 +41,18 @@ def apply():
             "email": email,
             "keywords": job_title_list,
             "resume_path": filepath,
-            "location_filter": "",  # Set to blank for now
+            "location_filter": "",
             "max_results": 50
         }
 
         with open("config.json", "w") as f:
             json.dump(config_data, f, indent=4)
 
-        # Scrape jobs
+        # Scrape jobs (LIMIT RESULTS)
         scraped_jobs = get_jobs()
+        MAX_JOBS = 10
+        scraped_jobs = scraped_jobs[:MAX_JOBS]
+
         print("[DEBUG] Scraped jobs count:", len(scraped_jobs))
         for job in scraped_jobs:
             print("[DEBUG] Job:", job)
