@@ -24,7 +24,7 @@ def apply():
         job_titles_raw = request.form.get('job_titles', '')
         resume = request.files.get('resume')
 
-        if not name or not email or not job_titles_raw:
+        if not name or not email:
             return "Missing required fields. Please fill out all fields.", 400
         if not resume or not resume.filename.lower().endswith('.pdf'):
             return "Please upload a PDF file only.", 400
@@ -51,6 +51,10 @@ def apply():
         # Parse job titles
         job_title_list = [j.strip().lower() for j in job_titles_raw.split(',') if j.strip()]
 
+        # Fail-safe test mode: if no job titles entered, set to empty list
+        if not job_title_list:
+            job_title_list = []
+
         # Save config
         config_data = {
             "name": name,
@@ -64,9 +68,8 @@ def apply():
         with open("config.json", "w") as f:
             json.dump(config_data, f, indent=4)
 
-        # Scrape jobs (LIMIT RESULTS)
+        # Scrape jobs
         scraped_jobs = get_jobs()
-        
 
         print("[DEBUG] Scraped jobs count:", len(scraped_jobs))
         for job in scraped_jobs:
