@@ -66,8 +66,7 @@ def apply():
 
         # Scrape jobs (LIMIT RESULTS)
         scraped_jobs = get_jobs()
-        MAX_JOBS = 10
-        scraped_jobs = scraped_jobs[:MAX_JOBS]
+        
 
         print("[DEBUG] Scraped jobs count:", len(scraped_jobs))
         for job in scraped_jobs:
