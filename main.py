@@ -1,12 +1,14 @@
 import csv
 import json
 import os
+import time
 import uuid
 from flask import Flask, render_template, request, send_file
 from scraper import get_jobs
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'resumes'
+USAGE_FILE = 'usage.csv'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -27,12 +29,26 @@ def apply():
         if not resume or not resume.filename.lower().endswith('.pdf'):
             return "Please upload a PDF file only.", 400
 
+        # ✅ Rate Limit Check
+        now = time.time()
+        usage_data = []
+        if os.path.exists(USAGE_FILE):
+            with open(USAGE_FILE, 'r') as f:
+                reader = csv.reader(f)
+                usage_data = list(reader)
+
+            for row in usage_data:
+                if row and row[0] == email:
+                    last_time = float(row[1])
+                    if now - last_time < 3600:
+                        return "⏳ You can only perform a job search once per hour. Please try again later.", 429
+
         # Save resume
         filename = f"{uuid.uuid4().hex}_{resume.filename}"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         resume.save(filepath)
 
-        # Parse job titles input
+        # Parse job titles
         job_title_list = [j.strip().lower() for j in job_titles_raw.split(',') if j.strip()]
 
         # Save config
@@ -65,6 +81,19 @@ def apply():
             writer.writeheader()
             for job in scraped_jobs:
                 writer.writerow(job)
+
+        # ✅ Update rate limit log
+        updated = False
+        for row in usage_data:
+            if row and row[0] == email:
+                row[1] = str(now)
+                updated = True
+        if not updated:
+            usage_data.append([email, str(now)])
+
+        with open(USAGE_FILE, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(usage_data)
 
         return render_template('success.html', name=name)
 
