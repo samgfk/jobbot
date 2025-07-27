@@ -1,7 +1,11 @@
 {
-  "name": "james t",
-  "email": "jtxcode@yahoo.com",
-  "job_titles": ["marketing", "ads", "growth", "seo", "digital", "media"],
-  "resume_path": "resumes/e74be75f2f4da432eac9d773c3c2e579b_resume.pdf",
-  "location": ""
+  "keywords": ["administrator", "python", "automation", "entry level", "remote", "it", "information technology", "software development", "system administrator", "network administrator", "technical support", "software engineer", "developer", "programmer", "full stack", "backend", "frontend", "web developer", "data analyst", "data scientist"],
+  "max_results": 50,
+  "resume_path": "resume.pdf",
+  "user_data": {
+    "full_name": "Samuel McGivern-Cowan",
+    "email": "samgfk@gmail.com",
+    "phone": "2157049985",
+    "linkedin": "https://www.linkedin.com/in/sam-mcgivern-cowan-1281781ab"
+  }
 }
